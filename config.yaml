@@ -1,4 +1,4 @@
-name: Teltonika SMS
+name: Teltonika Commander
 version: "1.0.11"
 slug: teltonika_commander
 description: Web UI for sending GPRS and SMS commands to Teltonika FMT trackers via Flespi and Sipgate
@@ -33,6 +33,6 @@ ingress: true
 ingress_port: 3001
 ingress_stream: false
 panel_icon: mdi:cellphone-message
-panel_title: Teltonika SMS
+panel_title: Teltonika Commander
 webui: http://[HOST]:[PORT:3001]
 init: false
