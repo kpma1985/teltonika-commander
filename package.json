@@ -1,0 +1,20 @@
+{
+  "name": "teltonika-sms",
+  "private": true,
+  "type": "module",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "setup": "./scripts/setup-env.sh",
+    "backup": "./scripts/backup.sh",
+    "dev": "./scripts/setup-env.sh --if-missing && bun run --parallel dev:server dev:web",
+    "dev:server": "./scripts/setup-env.sh --if-missing && cd server && bun run dev",
+    "dev:web": "cd web && bun run dev",
+    "build": "cd web && bun run build",
+    "build:binary": "./scripts/build-binary.sh",
+    "typecheck": "cd server && bun run typecheck && cd ../web && bun run typecheck"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "dotenv": "^17.4.2"
+  }
+}

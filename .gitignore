@@ -1,0 +1,32 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# node
+node_modules/
+dist/
+build/
+.vite/
+*.log
+
+# db
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+data/
+server/data/
+
+# tests
+test-results/
+playwright-report/
+
+# backups
+backups/
+
+# editor
+.claude/
+
+# os
+.DS_Store

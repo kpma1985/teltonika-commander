@@ -1,0 +1,26 @@
+services:
+  teltonika-sms:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        VITE_API_PROXY_TARGET: ${VITE_API_PROXY_TARGET}
+        VITE_FLESPI_TOKEN_HELP_URL: ${VITE_FLESPI_TOKEN_HELP_URL}
+        VITE_SIPGATE_API_CLIENTS_URL: ${VITE_SIPGATE_API_CLIENTS_URL}
+        VITE_SIPGATE_PAT_URL: ${VITE_SIPGATE_PAT_URL}
+        VITE_OPENSTREETMAP_URL: ${VITE_OPENSTREETMAP_URL}
+        VITE_GOOGLE_MAPS_URL: ${VITE_GOOGLE_MAPS_URL}
+    image: teltonika-sms:latest
+    container_name: teltonika-sms
+    env_file:
+      - ../.env
+    ports:
+      - "${DOCKER_LISTEN_PORT:-3001}:${PORT:-3001}"
+    environment:
+      PORT: "${PORT:-3001}"
+    volumes:
+      - teltonika-sms-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  teltonika-sms-data:
