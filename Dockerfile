@@ -23,7 +23,8 @@ RUN bun run build
 
 RUN bun install --production --frozen-lockfile
 
-COPY run.sh /run.sh
-RUN chmod +x /run.sh && mkdir -p /app/data
+RUN mkdir -p /etc/services.d/teltonika/
+COPY run.sh /etc/services.d/teltonika/run
+RUN chmod +x /etc/services.d/teltonika/run && mkdir -p /app/data
 
 EXPOSE 3001
