@@ -9,6 +9,10 @@ import type {
   SettingsResponse,
 } from "./types";
 
+// Relative base so API calls work both directly and behind Hassio Ingress
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const url = (path: string) => `${BASE}${path}`;
+
 const json = async <T>(res: Response): Promise<T> => {
   if (!res.ok) {
     let err = `${res.status} ${res.statusText}`;
@@ -24,18 +28,18 @@ const json = async <T>(res: Response): Promise<T> => {
 };
 
 export const api = {
-  health: () => fetch("/api/health").then(json<Health>),
-  devices: () => fetch("/api/devices").then(json<Device[]>),
+  health: () => fetch(url("/api/health")).then(json<Health>),
+  devices: () => fetch(url("/api/devices")).then(json<Device[]>),
   device: (id: number, params?: { resultsCount?: number; resultsOffset?: number }) => {
     const qs = new URLSearchParams();
     if (params?.resultsCount != null) qs.set("results_count", String(params.resultsCount));
     if (params?.resultsOffset != null) qs.set("results_offset", String(params.resultsOffset));
     const suffix = qs.toString() ? `?${qs}` : "";
-    return fetch(`/api/devices/${id}${suffix}`).then(json<DeviceDetail>);
+    return fetch(url(`/api/devices/${id}${suffix}`)).then(json<DeviceDetail>);
   },
-  settings: () => fetch("/api/settings").then(json<SettingsResponse>),
+  settings: () => fetch(url("/api/settings")).then(json<SettingsResponse>),
   updateSettings: (config: Partial<AppConfig>) =>
-    fetch("/api/settings", {
+    fetch(url("/api/settings"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ config }),
@@ -44,7 +48,7 @@ export const api = {
     id: number,
     body: { smsRecipient: string | null }
   ) =>
-    fetch(`/api/devices/${id}/settings`, {
+    fetch(url(`/api/devices/${id}/settings`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -54,22 +58,22 @@ export const api = {
     if (params?.limit != null) qs.set("limit", String(params.limit));
     if (params?.offset != null) qs.set("offset", String(params.offset));
     const suffix = qs.toString() ? `?${qs}` : "";
-    return fetch(`/api/devices/${id}/history${suffix}`).then(json<HistoryResponse>);
+    return fetch(url(`/api/devices/${id}/history${suffix}`)).then(json<HistoryResponse>);
   },
   commandQueue: (params?: { limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();
     if (params?.limit != null) qs.set("limit", String(params.limit));
     if (params?.offset != null) qs.set("offset", String(params.offset));
     const suffix = qs.toString() ? `?${qs}` : "";
-    return fetch(`/api/commands/queue${suffix}`, { cache: "no-store" }).then(
+    return fetch(url(`/api/commands/queue${suffix}`), { cache: "no-store" }).then(
       json<HistoryResponse>
     );
   },
   clearHistory: (id: number) =>
-    fetch(`/api/devices/${id}/history`, { method: "DELETE" }).then(json<{ ok: true }>),
+    fetch(url(`/api/devices/${id}/history`), { method: "DELETE" }).then(json<{ ok: true }>),
   preview: (data: PresetData): Promise<{ payloads: string[]; sms: string[] }> => {
     const qs = new URLSearchParams({ data: JSON.stringify(data) });
-    return fetch(`/api/commands/preview?${qs}`).then(
+    return fetch(url(`/api/commands/preview?${qs}`)).then(
       json<{ payloads: string[]; sms: string[] }>
     );
   },
@@ -81,31 +85,31 @@ export const api = {
       data: PresetData;
     }
   ) =>
-    fetch(`/api/devices/${id}/command`, {
+    fetch(url(`/api/devices/${id}/command`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }).then(json<{ results: CommandResult[] }>),
 
   bluetooth: {
-    status: () => fetch("/api/bluetooth/status").then(
+    status: () => fetch(url("/api/bluetooth/status")).then(
       json<{ available: boolean; connected: boolean; path: string | null }>
     ),
-    ports: () => fetch("/api/bluetooth/ports").then(
+    ports: () => fetch(url("/api/bluetooth/ports")).then(
       json<{ ports: Array<{ path: string; manufacturer?: string }> }>
     ),
     connect: (path: string, password?: string) =>
-      fetch("/api/bluetooth/connect", {
+      fetch(url("/api/bluetooth/connect"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, password }),
       }).then(json<{ connected: boolean; path: string | null }>),
     disconnect: () =>
-      fetch("/api/bluetooth/disconnect", { method: "DELETE" }).then(
+      fetch(url("/api/bluetooth/disconnect"), { method: "DELETE" }).then(
         json<{ connected: boolean }>
       ),
     command: (command: string, timeout?: number) =>
-      fetch("/api/bluetooth/command", {
+      fetch(url("/api/bluetooth/command"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command, timeout }),
