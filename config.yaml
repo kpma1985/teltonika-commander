@@ -25,4 +25,5 @@ schema:
   teltonika_sms_password: str
   sipgate_token_id: str
   sipgate_token: str
+webui: http://[HOST]:[PORT:3001]
 init: false
