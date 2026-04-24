@@ -545,21 +545,14 @@ app.post("/api/server/restart", (c) => {
 
 const webDistRoot = env.WEB_DIST_DIR || `${import.meta.dir}/../../web/dist`;
 
-const serveIndex = async (c: Parameters<typeof app.get>[1] extends (c: infer C) => unknown ? C : never) => {
-  const ingressPath = (c.req.header("X-Ingress-Path") ?? "").replace(/\/$/, "");
-  const base = ingressPath ? `${ingressPath}/` : "/";
-  const html = await Bun.file(`${webDistRoot}/index.html`).text();
-  const patched = html.replace("<head>", `<head><base href="${base}">`);
-  return c.html(patched);
-};
-
-// Serve static assets both at / and at the Ingress path
+// Serve static assets
 app.use("/*", serveStatic({ root: webDistRoot }));
-app.use("/api/hassio_ingress/:token/*", serveStatic({ root: webDistRoot, rewriteRequestPath: (path) => path.replace(/^\/api\/hassio_ingress\/[^/]+/, "") }));
 
-app.get("/api/hassio_ingress/:token", serveIndex);
-app.get("/api/hassio_ingress/:token/*", serveIndex);
-app.get("*", serveIndex);
+// Fallback: always serve index.html (assets are relative via base: "./")
+app.get("*", async (c) => {
+  const html = await Bun.file(`${webDistRoot}/index.html`).text();
+  return c.html(html);
+});
 
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
 server.ref();

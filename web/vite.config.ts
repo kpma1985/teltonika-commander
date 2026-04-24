@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: "..",
+    base: "./",
     plugins: [
       react(),
       tailwind(),
