@@ -1,5 +1,5 @@
 name: Teltonika SMS
-version: "1.0.9"
+version: "1.0.10"
 slug: teltonika_commander
 description: Web UI for sending GPRS and SMS commands to Teltonika FMT trackers via Flespi and Sipgate
 url: https://github.com/kpma1985/teltonika-commander
