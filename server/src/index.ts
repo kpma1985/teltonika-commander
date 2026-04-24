@@ -548,10 +548,13 @@ const webDistRoot = env.WEB_DIST_DIR || `${import.meta.dir}/../../web/dist`;
 // Serve static assets
 app.use("/*", serveStatic({ root: webDistRoot }));
 
-// Fallback: always serve index.html (assets are relative via base: "./")
+// Inject __BASE_URL__ so the frontend can prefix API calls correctly
 app.get("*", async (c) => {
+  const ingressPath = (c.req.header("X-Ingress-Path") ?? "").replace(/\/$/, "");
+  const base = ingressPath || "";
   const html = await Bun.file(`${webDistRoot}/index.html`).text();
-  return c.html(html);
+  const patched = html.replace("<head>", `<head><script>window.__BASE_URL__="${base}";</script>`);
+  return c.html(patched);
 });
 
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });

@@ -9,8 +9,8 @@ import type {
   SettingsResponse,
 } from "./types";
 
-// Relative base so API calls work both directly and behind Hassio Ingress
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+// Base URL injected by server for Hassio Ingress compatibility
+const BASE = (typeof window !== "undefined" && (window as unknown as Record<string, string>).__BASE_URL__) || "";
 const url = (path: string) => `${BASE}${path}`;
 
 const json = async <T>(res: Response): Promise<T> => {
