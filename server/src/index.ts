@@ -545,8 +545,14 @@ app.post("/api/server/restart", (c) => {
 
 const webDistRoot = env.WEB_DIST_DIR || `${import.meta.dir}/../../web/dist`;
 
-// Serve static assets
-app.use("/*", serveStatic({ root: webDistRoot }));
+// Serve static assets except index.html (handled below with __BASE_URL__ injection)
+app.use("/*", serveStatic({
+  root: webDistRoot,
+  rewriteRequestPath: (path) => {
+    if (path === "/" || path === "/index.html") return "/__skip__";
+    return path;
+  },
+}));
 
 // Inject __BASE_URL__ so the frontend can prefix API calls correctly
 app.get("*", async (c) => {
