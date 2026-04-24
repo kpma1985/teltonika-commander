@@ -545,7 +545,16 @@ app.post("/api/server/restart", (c) => {
 
 const webDistRoot = env.WEB_DIST_DIR || `${import.meta.dir}/../../web/dist`;
 app.use("/*", serveStatic({ root: webDistRoot }));
-app.get("*", serveStatic({ path: `${webDistRoot}/index.html` }));
+
+// Ingress-aware index.html: inject <base> tag so assets load correctly
+// when served behind Hassio Ingress at /api/hassio_ingress/<token>/
+app.get("*", async (c) => {
+  const ingressPath = c.req.header("X-Ingress-Path") ?? "";
+  const base = ingressPath ? `${ingressPath}/` : "/";
+  const html = await Bun.file(`${webDistRoot}/index.html`).text();
+  const patched = html.replace("<head>", `<head><base href="${base}">`);
+  return c.html(patched);
+});
 
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
 server.ref();
