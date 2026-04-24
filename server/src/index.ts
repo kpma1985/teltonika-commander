@@ -551,6 +551,8 @@ app.use("/*", serveStatic({ root: webDistRoot }));
 app.get("*", async (c) => {
   const ingressPath = c.req.header("X-Ingress-Path") ?? "";
   const base = ingressPath ? `${ingressPath}/` : "/";
+  // Debug: log alle Headers um Ingress-Pfad zu sehen
+  console.log("[ingress] path:", ingressPath, "| all headers:", JSON.stringify(Object.fromEntries(Object.entries(c.req.raw.headers))));
   const html = await Bun.file(`${webDistRoot}/index.html`).text();
   const patched = html.replace("<head>", `<head><base href="${base}">`);
   return c.html(patched);
