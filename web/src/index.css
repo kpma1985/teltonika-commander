@@ -32,10 +32,7 @@ html[data-theme="light"] {
 }
 
 body {
-  background:
-    radial-gradient(ellipse at top left, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(74, 222, 128, 0.05) 0%, transparent 40%),
-    #070809;
+  background: #070809;
   color: var(--color-text);
   font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -58,9 +55,7 @@ select:focus {
 }
 
 html[data-theme="light"] body {
-  background:
-    linear-gradient(180deg, rgba(22, 163, 74, 0.035) 0%, transparent 280px),
-    #f8faf8;
+  background: #f8faf8;
 }
 
 html[data-theme="light"] input,

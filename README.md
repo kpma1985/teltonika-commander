@@ -1,163 +1,131 @@
-# teltonika-sms
+# Teltonika Commander
 
-PWA zum Steuern von Teltonika-Trackern (z.B. FMT100). Sendet Kommandos
-vorzugsweise per **GPRS/Codec-12 über Flespi**, optional als **SMS via Sipgate**.
+[![GitHub release](https://img.shields.io/github/v/release/kpma1985/teltonika-commander?style=flat-square)](https://github.com/kpma1985/teltonika-commander/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Kurzanleitung fuer lokalen Start und Docker: [SETUP.md](./SETUP.md).
-Voraussetzungen: [REQUIREMENTS.md](./REQUIREMENTS.md).
+A web UI for sending GPRS and SMS commands to **Teltonika FMT/FMB trackers** via [Flespi](https://flespi.io) and [Sipgate](https://www.sipgate.de).
 
-## Kanäle
+Install initial configuration (APN, server, BT-OBD2) onto devices over the air — without physical access.
 
-| Kanal | wozu | wann |
-|---|---|---|
-| **GPRS (Flespi)** | `setparam …`, `cpureset`, `getinfo`, … an ein online-Gerät | Standard. Kostenlos, instantan, Antwort kommt zurück. |
-| **SMS (Sipgate)** | dieselben Kommandos per SMS | Erstkonfiguration vor APN-Setup oder wenn Gerät offline/ohne GPRS. |
+![Screenshot](docs/screenshot.png)
 
-## Presets
+---
 
-| Preset | Ergebnis |
-|---|---|
-| **BT-OBD2** | `setparam 800:1;807:2;804:<MAC>;806:<PIN>` + optional `cpureset` |
-| **APN** | `setparam 2001:<APN>;2002:<user>;2003:<pass>;2016:<auth>` |
-| **Server** | `setparam 2000:1;2004:<domain>;2005:<port>;2006:<protocol>` + optional `cpureset` |
-| **Settings lesen** | mehrere `getparam <id>`-Kommandos für APN, Server oder Netzwerk |
-| **Status** | `getinfo`, `getver`, `getstatus`, `getgps`, `battery`, `readio` |
-| **Outputs / Reset** | `setdigout …`, `cpureset`, `defaultcfg` |
+## Features
 
-Parameter-IDs: siehe [Teltonika FMT100 Parameter list](https://wiki.teltonika-gps.com/view/FMT100_Parameter_list).
+- **GPRS commands** via Flespi Codec-12 — instant delivery, response included
+- **SMS fallback** via Sipgate — for initial setup before APN is configured
+- **Presets** for APN, server, BT-OBD2, tracking intervals, I/O outputs, status queries
+- **Command history** with execution status per device
+- **PWA** — installable on iPhone and Android as a home screen app
+- **Dark & light theme**, German and English UI
+- **Home Assistant Add-on** — runs directly on your Hassio instance
 
-## Setup
+---
 
-```bash
-bun install            # installiert server/ + web/
-bun run setup          # erstellt .env per Dialog
-bun run dev            # startet beide Prozesse (server :3001, web :5173)
-```
+## Installation
 
-Dann **http://localhost:5173** im Browser öffnen.
-Auf iOS per Safari → „Zum Home-Bildschirm" für PWA-Installation.
+### Home Assistant Add-on
 
-Wenn `.env` beim Start fehlt, wird das Setup automatisch ausgeführt und fragt
-alle Variablen ab.
+[![Add to Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fkpma1985%2Fteltonika-commander)
 
-## .env
+Or manually:
+1. **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
+2. Add: `https://github.com/kpma1985/teltonika-commander`
+3. Install **Teltonika Commander** and enter your Flespi token in the add-on options
+
+### Docker
 
 ```bash
-FLESPI_TOKEN=...                   # Flespi API-Token
-FLESPI_BASE_URL=https://flespi.io
-PORT=3001                          # interner Bun-Port
-DOCKER_LISTEN_PORT=3001            # Host-Port für Docker Compose
-
-# Sipgate — entweder OAuth ODER PAT. Leer = SMS deaktiviert.
-SIPGATE_API_BASE_URL=https://api.sipgate.com/v2
-SIPGATE_OAUTH_BASE_URL=https://login.sipgate.com/auth/realms/third-party/protocol/openid-connect
-
-# OAuth 2.0 (empfohlen für third-party apps)
-SIPGATE_CLIENT_ID=...:third-party
-SIPGATE_CLIENT_SECRET=...
-SIPGATE_REDIRECT_URI=http://localhost:3001/api/sipgate/callback
-
-# Personal Access Token (Basic Auth)
-SIPGATE_TOKEN_ID=
-SIPGATE_TOKEN=
-
-SIPGATE_SMS_ID=s0                  # SMS-Extension (default s0)
-
-# optional: falls am Gerät SMS-Login/Passwort gesetzt sind
-TELTONIKA_SMS_LOGIN=
-TELTONIKA_SMS_PASSWORD=
-
-# Frontend / Dev-Proxy / öffentliche Links (Vite, zur Build-Zeit)
-VITE_API_PROXY_TARGET=http://localhost:3001
-VITE_FLESPI_TOKEN_HELP_URL=https://flespi.com/kb/tokens-access-keys-to-flespi-platform
-VITE_SIPGATE_API_CLIENTS_URL=https://app.sipgate.com/api-clients
-VITE_SIPGATE_PAT_URL=https://app.sipgate.com/w0/personal-access-token
-VITE_OPENSTREETMAP_URL=https://www.openstreetmap.org
-VITE_GOOGLE_MAPS_URL=https://www.google.com/maps
-```
-
-### Sipgate OAuth registrieren
-
-1. In [app.sipgate.com](https://app.sipgate.com) → OAuth-2.0-App anlegen.
-2. Redirect URI eintragen: `http://localhost:3001/api/sipgate/callback`
-3. Client ID + Secret in `.env` setzen.
-4. App starten → oben rechts **Sipgate verbinden** → sipgate-Login → fertig.
-   Refresh-Token liegt in `data/app.sqlite` (gitignored).
-
-## Architektur
-
-```
-root
-├─ server/   Hono + bun:sqlite
-│  ├─ flespi.ts      GET /devices, POST /commands-queue
-│  ├─ sipgate.ts     OAuth (PKCE) + Bearer / PAT Basic Auth
-│  ├─ commands.ts    Teltonika-Command-Builder (Preset → String[])
-│  ├─ db.ts          command_log, sipgate_auth, oauth_state
-│  └─ index.ts       Routen
-└─ web/      React + Vite + Tailwind + PWA
-   └─ src/components/presets/  Formulare pro Preset
-```
-
-## Scripts
-
-```bash
-bun run setup        # fragt alle Variablen ab und schreibt .env
-bun run backup       # erstellt ein Projekt-Backup in backups/
-bun run dev          # beide Prozesse parallel
-bun run dev:server   # nur Backend
-bun run dev:web      # nur Frontend
-bun run typecheck    # tsc --noEmit auf beiden Seiten
-bun run build        # web build → web/dist
-```
-
-## Docker
-
-Ein minimales Single-Container-Image baut die PWA und startet danach nur den
-Bun/Hono-Server. Im Container lauscht die App auf `PORT` (default `3001`);
-Docker Compose veröffentlicht sie auf `DOCKER_LISTEN_PORT` (default `3001`).
-`web/dist` wird vom Backend ausgeliefert.
-
-```bash
-docker build -f docker/Dockerfile -t teltonika-sms \
-  --build-arg VITE_API_PROXY_TARGET="$VITE_API_PROXY_TARGET" \
-  --build-arg VITE_FLESPI_TOKEN_HELP_URL="$VITE_FLESPI_TOKEN_HELP_URL" \
-  --build-arg VITE_SIPGATE_API_CLIENTS_URL="$VITE_SIPGATE_API_CLIENTS_URL" \
-  --build-arg VITE_SIPGATE_PAT_URL="$VITE_SIPGATE_PAT_URL" \
-  --build-arg VITE_OPENSTREETMAP_URL="$VITE_OPENSTREETMAP_URL" \
-  --build-arg VITE_GOOGLE_MAPS_URL="$VITE_GOOGLE_MAPS_URL" .
-docker run --rm -p 3001:3001 --env-file .env -v teltonika-sms-data:/app/data teltonika-sms
-```
-
-Alternativ mit Compose:
-
-```bash
+cp .env.example .env
+# fill in your tokens
 docker compose --env-file .env -f docker/docker-compose.yml up -d --build
 ```
 
-Dann `http://localhost:$DOCKER_LISTEN_PORT` öffnen. Die SQLite-Datenbank liegt
-im Volume `/app/data`.
+Then open `http://localhost:3001`.
 
-## Backup Workflow
-
-Vor größeren Änderungen, Refactors, UI-Umbauten oder riskanten Backend-Anpassungen:
+### Local development
 
 ```bash
-bun run backup
+bun install
+cp .env.example .env
+# fill in your tokens
+bun run dev        # server :3001 + web :5173
 ```
 
-Das Backup wird unter `backups/teltonika-sms-backup-YYYYMMDD-HHMMSS.tar.gz` abgelegt.
+Open `http://localhost:5173`.
 
-## Sicherheit
+---
 
-- `.env` ist gitignored. Niemals committen.
-- `data/` (SQLite inkl. Refresh-Token) ist gitignored.
-- Bei Verdacht auf Leak: Tokens/Secrets in Flespi- bzw. Sipgate-Console rotieren.
-- Das Backend proxied sämtliche Kommandos — Tokens verlassen niemals den Server.
+## Configuration
 
-## Referenzen
+Copy `.env.example` to `.env` and fill in the values:
 
-- [FMT100 SMS/GPRS-Kommandos](https://wiki.teltonika-gps.com/view/FMT100_SMS/GPRS_Commands)
-- [FMT100 Bluetooth-Settings](https://wiki.teltonika-gps.com/view/FMT100_Bluetooth_settings)
-- [FMT100 Parameter-Liste](https://wiki.teltonika-gps.com/view/FMT100_Parameter_list)
-- [Flespi API: commands-queue](https://flespi.com/kb/commands-api)
+| Variable | Description |
+|---|---|
+| `FLESPI_TOKEN` | Flespi API token — [get one here](https://flespi.io/panel/#/tokens) |
+| `SIPGATE_TOKEN_ID` | Sipgate PAT token ID (e.g. `token-XXXXXX`) |
+| `SIPGATE_TOKEN` | Sipgate PAT token |
+| `TELTONIKA_SMS_LOGIN` | SMS auth login set on the device (leave empty if not set) |
+| `TELTONIKA_SMS_PASSWORD` | SMS auth password set on the device |
+
+SMS via Sipgate is optional — leave all `SIPGATE_*` variables empty to disable it.
+
+---
+
+## Presets
+
+| Preset | Command generated |
+|---|---|
+| **BT-OBD2** | `setparam 800:1;807:2;804:<MAC>;806:<PIN>` |
+| **APN** | `setparam 2001:<APN>;2002:<user>;2003:<pass>;2016:<auth>` |
+| **Server** | `setparam 2000:1;2004:<domain>;2005:<port>;2006:<proto>` |
+| **Settings read** | `getparam` for APN, server or network profile |
+| **Status** | `getinfo`, `getver`, `getstatus`, `getgps`, `battery`, `readio` |
+| **Outputs** | `setdigout <states> <timers> <speed thresholds>` |
+| **Tracking** | `setparam 10000/10005/10050/10055:<interval>` |
+| **Raw** | any custom command |
+
+Parameter IDs: [Teltonika FMT100 Parameter list](https://wiki.teltonika-gps.com/view/FMT100_Parameter_list)
+
+---
+
+## Architecture
+
+```
+root
+├─ server/          Hono + Bun + SQLite
+│  ├─ flespi.ts     Device list, telemetry, command queue
+│  ├─ sipgate.ts    OAuth (PKCE) + PAT Basic Auth
+│  ├─ commands.ts   Preset → Teltonika command string
+│  ├─ db.ts         Command log, Sipgate auth, OAuth state
+│  └─ index.ts      API routes
+└─ web/             React + Vite + Tailwind + PWA
+   └─ src/
+      ├─ components/presets/   One form per preset
+      └─ api.ts                Typed API client
+```
+
+---
+
+## Security
+
+- `.env` and `data/` (SQLite with refresh tokens) are gitignored — never commit them
+- All API tokens stay on the server — the frontend never sees them
+- If a token leaks: rotate it in the Flespi or Sipgate console
+
+---
+
+## References
+
+- [FMT100 SMS/GPRS Commands](https://wiki.teltonika-gps.com/view/FMT100_SMS/GPRS_Commands)
+- [FMT100 Bluetooth Settings](https://wiki.teltonika-gps.com/view/FMT100_Bluetooth_settings)
+- [FMT100 Parameter List](https://wiki.teltonika-gps.com/view/FMT100_Parameter_list)
+- [Flespi Commands API](https://flespi.com/kb/commands-api)
 - [Sipgate REST API — SMS](https://www.sipgate.io/rest-api/sms)
+
+---
+
+## License
+
+MIT
