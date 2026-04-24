@@ -14,7 +14,7 @@ type TranslationDict = Record<string, string>;
 
 const translations: Record<Language, TranslationDict> = {
   de: {
-    app_title: "Teltonika Control",
+    app_title: "Teltonika SMS",
     devices_online: "{online}/{total} online",
     devices_loading: "Lade Geräte",
     flespi: "Flespi",
@@ -162,7 +162,7 @@ const translations: Record<Language, TranslationDict> = {
     direct_sms_no_recipient: "Empfänger eingeben um SMS-App zu öffnen",
   },
   en: {
-    app_title: "Teltonika Control",
+    app_title: "Teltonika SMS",
     devices_online: "{online}/{total} online",
     devices_loading: "Loading devices",
     flespi: "Flespi",
