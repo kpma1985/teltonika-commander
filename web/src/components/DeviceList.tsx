@@ -1,6 +1,6 @@
 import type { Device } from "../types";
 import { TELTONIKA_DEVICE_TYPES } from "../types";
-import { useUi } from "../ui";
+import { Redacted, useUi } from "../ui";
 
 type Props = {
   devices: Device[];
@@ -47,12 +47,12 @@ export const DeviceList = ({ devices, selectedId, onSelect }: Props) => {
                 </span>
               )}
             </div>
-            <div className="mt-1 truncate text-xs text-[var(--color-muted)]">
-              {t("imei")} {d.ident || "—"}
+            <div className="mt-1 truncate text-xs text-[var(--color-muted)] font-mono">
+              {d.ident ? <Redacted value={d.ident} /> : "—"}
             </div>
             {d.smsRecipient && (
               <div className="mt-0.5 truncate text-[11px] text-[var(--color-muted)] font-mono">
-                {d.smsRecipient}
+                <Redacted value={d.smsRecipient} />
               </div>
             )}
             <div className="mt-2 text-[11px] text-[var(--color-muted)]">

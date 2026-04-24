@@ -316,6 +316,8 @@ type UiContextValue = {
   setLanguage: (language: Language) => void;
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
+  privacy: boolean;
+  setPrivacy: (privacy: boolean) => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
@@ -324,6 +326,7 @@ const UiContext = createContext<UiContextValue | null>(null);
 export const UiProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguage] = useState<Language>("de");
   const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [privacy, setPrivacy] = useState<boolean>(false);
 
   useEffect(() => {
     const savedLanguage = window.localStorage.getItem("ui-language");
@@ -353,8 +356,8 @@ export const UiProvider = ({ children }: { children: ReactNode }) => {
       return text;
     };
 
-    return { language, setLanguage, theme, setTheme, t };
-  }, [language, theme]);
+    return { language, setLanguage, theme, setTheme, privacy, setPrivacy, t };
+  }, [language, theme, privacy]);
 
   return <UiContext.Provider value={value}>{children}</UiContext.Provider>;
 };
@@ -363,4 +366,17 @@ export const useUi = (): UiContextValue => {
   const value = useContext(UiContext);
   if (!value) throw new Error("useUi must be used inside UiProvider");
   return value;
+};
+
+export const Redacted = ({ value, className }: { value: string; className?: string }) => {
+  const { privacy } = useUi();
+  if (!privacy) return <span className={className}>{value}</span>;
+  return (
+    <span
+      className={`select-none rounded ${className ?? ""}`}
+      style={{ filter: "blur(6px)", userSelect: "none" }}
+    >
+      {value}
+    </span>
+  );
 };

@@ -19,7 +19,7 @@ import { HistoryPanel } from "./HistoryPanel";
 import { AutoStatsPanel } from "./AutoStatsPanel";
 import { ObdPanel } from "./ObdPanel";
 import { DeviceConfigModal } from "./DeviceConfigModal";
-import { useUi } from "../ui";
+import { Redacted, useUi } from "../ui";
 import { normalizePhoneNumber } from "../lib/phone";
 import {
   type DeviceConfig,
@@ -465,7 +465,9 @@ export const DeviceDetail = ({ device, health }: Props) => {
                 {online ? t("online") : t("offline")}
               </span>
             </div>
-            <div className="text-xs text-[var(--color-muted)] mt-0.5">{t("imei")} {device.ident || "—"}</div>
+            <div className="text-xs text-[var(--color-muted)] mt-0.5 font-mono">
+              {t("imei")} {device.ident ? <Redacted value={device.ident} /> : "—"}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-xs text-[var(--color-muted)]">{t("type")} {device.device_type_id}</div>
@@ -502,8 +504,9 @@ export const DeviceDetail = ({ device, health }: Props) => {
         {position && (
           <div className="mt-2 space-y-2">
             <div className="text-xs text-[var(--color-muted)]">
-              {t("stats_position")} {position.latitude ?? "—"}, {position.longitude ?? "—"} | {t("speed")}{" "}
-              {position.speed ?? "—"} km/h
+              {t("stats_position")}{" "}
+              <Redacted value={`${position.latitude ?? "—"}, ${position.longitude ?? "—"}`} />
+              {" "}| {t("speed")} {position.speed ?? "—"} km/h
             </div>
             <div className="grid grid-cols-2 ">
               {openStreetMapUrl && (

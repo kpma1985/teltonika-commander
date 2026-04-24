@@ -32,7 +32,7 @@ export const App = () => {
   const [queueOptimisticResults, setQueueOptimisticResults] = useState<CommandResult[]>([]);
   const [toasts, setToasts] =
     useState<Array<{ id: number; result: CommandResult; fading: boolean }>>([]);
-  const { t, language, setLanguage, theme, setTheme } = useUi();
+  const { t, language, setLanguage, theme, setTheme, privacy, setPrivacy } = useUi();
 
   const refresh = () => {
     Promise.all([api.health(), api.devices()])
@@ -294,6 +294,18 @@ export const App = () => {
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => setPrivacy((v) => !v)}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition ${
+                  privacy
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
+                    : "border-[var(--color-line)] bg-[var(--color-panel)] text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
+                }`}
+                title={privacy ? "Privacy mode on — click to show data" : "Privacy mode off — click to blur sensitive data"}
+              >
+                {privacy ? "🙈" : "👁"}
+              </button>
               <button
                 type="button"
                 onClick={() => setAutoRefresh((v) => !v)}
