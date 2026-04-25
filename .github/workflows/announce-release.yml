@@ -54,12 +54,14 @@ jobs:
       - name: Run announce script
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.version }}
-          ANNOUNCE_PASSWORD: ${{ secrets.ANNOUNCE_PASSWORD }}
-          REDDIT_EMAIL: ${{ secrets.REDDIT_EMAIL }}
-          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
-          HA_FORUM_EMAIL: ${{ secrets.HA_FORUM_EMAIL }}
-          ADMIN_DE_EMAIL: ${{ secrets.ADMIN_DE_EMAIL }}
-          MAILCOW_BASE_URL: ${{ secrets.MAILCOW_BASE_URL }}
-          MAILCOW_DOMAIN_ADMIN_USER: ${{ secrets.MAILCOW_DOMAIN_ADMIN_USER }}
-          MAILCOW_DOMAIN_ADMIN_PASS: ${{ secrets.MAILCOW_DOMAIN_ADMIN_PASS }}
-        run: ts-node scripts/publish.ts
+          CLAUDE: ${{ secrets.CLAUDE }}
+        run: |
+          # Extract all values from the CLAUDE JSON secret
+          echo "$CLAUDE" | python3 -c "
+          import json,sys,os
+          d = json.load(sys.stdin)
+          for k,v in d.items():
+              with open(os.environ['GITHUB_ENV'], 'a') as f:
+                  f.write(f'{k}={v}\n')
+          "
+          ts-node scripts/publish.ts
