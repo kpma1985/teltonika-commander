@@ -28,5 +28,8 @@ backups/
 # editor
 .claude/
 
+# announce bot credentials (never commit)
+scripts/private.env
+
 # os
 .DS_Store

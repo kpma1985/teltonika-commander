@@ -1,0 +1,64 @@
+name: Announce release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (e.g. v1.1.0)
+        required: false
+        default: test
+
+jobs:
+  announce:
+    # Only run on minor/major releases (v*.*.0) — skip patch bumps
+    if: ${{ github.event_name == 'workflow_dispatch' || endsWith(github.event.release.tag_name, '.0') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set GitHub Topics
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/topics \
+            -X PUT \
+            --field 'names[]=home-assistant' \
+            --field 'names[]=hassio-addon' \
+            --field 'names[]=teltonika' \
+            --field 'names[]=teltonika-gps' \
+            --field 'names[]=fmt100' \
+            --field 'names[]=fmb003' \
+            --field 'names[]=flespi' \
+            --field 'names[]=gps-tracker' \
+            --field 'names[]=vehicle-tracker' \
+            --field 'names[]=gps' \
+            --field 'names[]=sipgate' \
+            --field 'names[]=sms' \
+            --field 'names[]=pwa' \
+            --field 'names[]=selfhosted' \
+            --field 'names[]=hono' \
+            --field 'names[]=bun'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Install ts-node
+        run: npm install -g ts-node typescript
+
+      - name: Run announce script
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.version }}
+          ANNOUNCE_PASSWORD: ${{ secrets.ANNOUNCE_PASSWORD }}
+          REDDIT_EMAIL: ${{ secrets.REDDIT_EMAIL }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          HA_FORUM_EMAIL: ${{ secrets.HA_FORUM_EMAIL }}
+          ADMIN_DE_EMAIL: ${{ secrets.ADMIN_DE_EMAIL }}
+          MAILCOW_BASE_URL: ${{ secrets.MAILCOW_BASE_URL }}
+          MAILCOW_API_KEY: ${{ secrets.MAILCOW_API_KEY }}
+        run: ts-node scripts/publish.ts
