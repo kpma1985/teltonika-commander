@@ -1,5 +1,5 @@
 name: Teltonika Commander
-version: "1.0.20"
+version: "1.0.21"
 slug: teltonika_commander
 description: Web UI for sending GPRS and SMS commands to Teltonika FMT trackers via Flespi and Sipgate
 url: https://github.com/kpma1985/teltonika-commander
