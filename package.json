@@ -11,7 +11,8 @@
     "dev:web": "cd web && bun run dev",
     "build": "cd web && bun run build",
     "build:binary": "./scripts/build-binary.sh",
-    "typecheck": "cd server && bun run typecheck && cd ../web && bun run typecheck"
+    "typecheck": "cd server && bun run typecheck && cd ../web && bun run typecheck",
+    "publish": "bun run scripts/publish.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
