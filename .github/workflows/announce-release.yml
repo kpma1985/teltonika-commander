@@ -60,5 +60,6 @@ jobs:
           HA_FORUM_EMAIL: ${{ secrets.HA_FORUM_EMAIL }}
           ADMIN_DE_EMAIL: ${{ secrets.ADMIN_DE_EMAIL }}
           MAILCOW_BASE_URL: ${{ secrets.MAILCOW_BASE_URL }}
-          MAILCOW_API_KEY: ${{ secrets.MAILCOW_API_KEY }}
+          MAILCOW_DOMAIN_ADMIN_USER: ${{ secrets.MAILCOW_DOMAIN_ADMIN_USER }}
+          MAILCOW_DOMAIN_ADMIN_PASS: ${{ secrets.MAILCOW_DOMAIN_ADMIN_PASS }}
         run: ts-node scripts/publish.ts

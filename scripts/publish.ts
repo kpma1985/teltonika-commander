@@ -12,7 +12,8 @@ if (fs.existsSync(envFile)) {
 
 const PASSWORD = process.env.ANNOUNCE_PASSWORD!;
 const MAILCOW_BASE = process.env.MAILCOW_BASE_URL!;
-const MAILCOW_KEY = process.env.MAILCOW_API_KEY!;
+const MAILCOW_USER = process.env.MAILCOW_DOMAIN_ADMIN_USER!;
+const MAILCOW_PASS = process.env.MAILCOW_DOMAIN_ADMIN_PASS!;
 
 const GITHUB_URL = "https://github.com/kpma1985/teltonika-commander";
 const VERSION = process.env.RELEASE_VERSION ?? "v1.0";
@@ -32,7 +33,9 @@ async function fetchVerificationLink(toEmail: string, retries = 12): Promise<str
     await new Promise((r) => setTimeout(r, 5000));
     try {
       const res = await fetch(`${MAILCOW_BASE}/api/v1/get/mailbox/${toEmail.split("@")[0]}`, {
-        headers: { "X-API-Key": MAILCOW_KEY },
+        headers: {
+          "Authorization": "Basic " + btoa(`${MAILCOW_USER}:${MAILCOW_PASS}`),
+        },
       });
       const data = await res.json() as { messages?: Array<{ body_html?: string; body_text?: string }> };
       const messages = data?.messages ?? [];
