@@ -23,6 +23,15 @@ export const buildOpenStreetMapUrl = (lat: number, lon: number): string =>
 export const buildGoogleMapsUrl = (lat: number, lon: number): string =>
   `${frontendEnv.GOOGLE_MAPS_URL}?q=${lat},${lon}`;
 
+/** Turn-by-turn / route to destination (uses device GPS as destination). */
+export const buildGoogleMapsDirectionsUrl = (lat: number, lon: number): string => {
+  const base = frontendEnv.GOOGLE_MAPS_URL.replace(/\/+$/, "");
+  return `${base}/dir/?api=1&destination=${lat},${lon}`;
+};
+
+export const buildAppleMapsDirectionsUrl = (lat: number, lon: number): string =>
+  `https://maps.apple.com/?dirflg=d&daddr=${encodeURIComponent(`${lat},${lon}`)}`;
+
 export const buildOpenStreetMapEmbedUrl = (
   lat: number,
   lon: number,

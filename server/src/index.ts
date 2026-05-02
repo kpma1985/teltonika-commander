@@ -27,9 +27,11 @@ import {
 import {
   type CommandResult as FlespiCommandResult,
   getDevice,
+  getDeviceMessages,
   getRecentResults,
   getTelemetry,
   listDevices,
+  messagesToTrackPoints,
   queueCommand,
   summarizeTelemetry,
 } from "./flespi.ts";
@@ -166,6 +168,68 @@ app.get("/api/commands/queue", async (c) => {
     offset,
     limit,
   });
+});
+
+app.get("/api/devices/:id/track", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400);
+
+  const device = await getDevice(id);
+  if (!device) return c.json({ error: "not found" }, 404);
+
+  const limit = Math.max(50, Math.min(1000, Number(c.req.query("limit") ?? 500)));
+  const now = Math.floor(Date.now() / 1000);
+  const maxSpan = 14 * 24 * 3600;
+
+  const qFrom = c.req.query("from");
+  const qTo = c.req.query("to");
+  const pf = qFrom != null ? Number(qFrom) : NaN;
+  const pt = qTo != null ? Number(qTo) : NaN;
+
+  let from: number;
+  let to: number;
+  let hoursPreset: number | undefined;
+
+  if (Number.isFinite(pf) && Number.isFinite(pt) && pf < pt) {
+    to = Math.min(Math.floor(pt), now);
+    from = Math.floor(pf);
+    const span = to - from;
+    if (span > maxSpan) from = to - maxSpan;
+    if (from >= to) from = Math.max(0, to - 3600);
+  } else {
+    const hours = Math.max(1, Math.min(24 * 14, Number(c.req.query("hours") ?? 24)));
+    hoursPreset = hours;
+    to = now;
+    from = now - hours * 3600;
+  }
+
+  try {
+    const messages = await getDeviceMessages(id, {
+      count: limit,
+      from,
+      to,
+      reverse: false,
+    });
+    const points = messagesToTrackPoints(messages);
+    return c.json({
+      points,
+      range: {
+        from,
+        to,
+        ...(hoursPreset != null ? { hours: hoursPreset } : {}),
+      },
+    });
+  } catch (e) {
+    return c.json({
+      points: [],
+      range: {
+        from,
+        to,
+        ...(hoursPreset != null ? { hours: hoursPreset } : {}),
+      },
+      error: (e as Error).message,
+    });
+  }
 });
 
 app.get("/api/devices/:id", async (c) => {

@@ -55,6 +55,20 @@ export type HistoryResponse = {
   limit: number;
 };
 
+export type TrackPoint = {
+  lat: number;
+  lon: number;
+  ts: number;
+  speed?: number;
+};
+
+export type TrackResponse = {
+  points: TrackPoint[];
+  /** hours nur gesetzt, wenn Anfrage über Preset-Stunden erfolgte */
+  range: { from: number; to: number; hours?: number };
+  error?: string;
+};
+
 export type StatusCommand = { key: string; label: string };
 
 export type Health = {

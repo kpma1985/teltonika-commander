@@ -7,6 +7,7 @@ const CACHE_TTL = {
   device: 15_000,
   telemetry: 15_000,
   results: 8_000,
+  messages: 45_000,
 } as const;
 
 const headers = (): HeadersInit => ({
@@ -69,6 +70,7 @@ const invalidateFlespiCache = (deviceId?: number): void => {
     `device:${deviceId}`,
     `telemetry:${deviceId}`,
     `results:${deviceId}:`,
+    `messages:${deviceId}:`,
   ];
   for (const key of Array.from(cache.keys())) {
     if (prefixes.some((prefix) => key === prefix || key.startsWith(prefix))) {
@@ -283,5 +285,116 @@ export const getRecentResults = async (
             : item.response,
       }))
       .sort((a, b) => resultTimestamp(b) - resultTimestamp(a));
+  });
+};
+
+export type TrackPoint = {
+  lat: number;
+  lon: number;
+  ts: number;
+  speed?: number;
+};
+
+type RawMessage = Record<string, unknown>;
+
+const readMessageTimestamp = (msg: RawMessage): number | null => {
+  const t = msg.timestamp;
+  if (typeof t === "number") return t;
+  const st = msg["server.timestamp"];
+  if (typeof st === "number") return st;
+  if (st && typeof st === "object" && st !== null && "ts" in st) {
+    const ts = (st as { ts?: unknown }).ts;
+    if (typeof ts === "number") return ts;
+  }
+  return null;
+};
+
+export const extractTrackPoint = (msg: RawMessage): TrackPoint | null => {
+  let lat: number | undefined;
+  let lon: number | undefined;
+  const pos = msg.position;
+  if (pos && typeof pos === "object" && pos !== null) {
+    const p = pos as Record<string, unknown>;
+    if (typeof p.latitude === "number") lat = p.latitude;
+    if (typeof p.longitude === "number") lon = p.longitude;
+  }
+  if (lat == null || lon == null) {
+    const flatLat = msg["position.latitude"];
+    const flatLon = msg["position.longitude"];
+    if (typeof flatLat === "number") lat = flatLat;
+    if (typeof flatLon === "number") lon = flatLon;
+  }
+  if (
+    lat == null ||
+    lon == null ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon)
+  ) {
+    return null;
+  }
+  const ts = readMessageTimestamp(msg);
+  if (ts == null) return null;
+
+  let speed: number | undefined;
+  if (pos && typeof pos === "object" && pos !== null) {
+    const s = (pos as Record<string, unknown>).speed;
+    if (typeof s === "number") speed = s;
+  }
+  if (speed == null && typeof msg["position.speed"] === "number") {
+    speed = msg["position.speed"] as number;
+  }
+
+  const point: TrackPoint = { lat, lon, ts };
+  if (speed != null) point.speed = speed;
+  return point;
+};
+
+export const messagesToTrackPoints = (messages: RawMessage[]): TrackPoint[] => {
+  const out: TrackPoint[] = [];
+  for (const m of messages) {
+    const p = extractTrackPoint(m);
+    if (p) out.push(p);
+  }
+  out.sort((a, b) => a.ts - b.ts);
+  const deduped: TrackPoint[] = [];
+  for (const p of out) {
+    const prev = deduped[deduped.length - 1];
+    if (prev && prev.ts === p.ts && prev.lat === p.lat && prev.lon === p.lon) {
+      continue;
+    }
+    deduped.push(p);
+  }
+  return deduped;
+};
+
+export type DeviceMessagesOptions = {
+  count?: number;
+  from?: number;
+  to?: number;
+  reverse?: boolean;
+};
+
+export const getDeviceMessages = async (
+  deviceId: number,
+  options: DeviceMessagesOptions = {}
+): Promise<RawMessage[]> => {
+  const count = Math.min(1000, Math.max(1, options.count ?? 500));
+  const params = new URLSearchParams();
+  params.set("count", String(count));
+  if (options.from != null) params.set("from", String(Math.floor(options.from)));
+  if (options.to != null) params.set("to", String(Math.floor(options.to)));
+  if (options.reverse === true) params.set("reverse", "true");
+  if (options.reverse === false) params.set("reverse", "false");
+
+  const cacheKey = `messages:${deviceId}:${count}:${options.from ?? ""}:${
+    options.to ?? ""
+  }:${options.reverse ?? ""}`;
+  return getCached(cacheKey, CACHE_TTL.messages, async () => {
+    const res = await fetch(
+      `${BASE}/gw/devices/${deviceId}/messages?${params}`,
+      { headers: headers() }
+    );
+    const raw = await unwrap<RawMessage[]>(res);
+    return Array.isArray(raw) ? raw : [];
   });
 };

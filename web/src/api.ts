@@ -7,6 +7,7 @@ import type {
   HistoryResponse,
   PresetData,
   SettingsResponse,
+  TrackResponse,
 } from "./types";
 
 // Base URL injected by server for Hassio Ingress compatibility
@@ -30,6 +31,18 @@ const json = async <T>(res: Response): Promise<T> => {
 export const api = {
   health: () => fetch(url("/api/health")).then(json<Health>),
   devices: () => fetch(url("/api/devices")).then(json<Device[]>),
+  track: (
+    id: number,
+    params?: { hours?: number; from?: number; to?: number; limit?: number }
+  ) => {
+    const qs = new URLSearchParams();
+    if (params?.hours != null) qs.set("hours", String(params.hours));
+    if (params?.from != null) qs.set("from", String(params.from));
+    if (params?.to != null) qs.set("to", String(params.to));
+    if (params?.limit != null) qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return fetch(url(`/api/devices/${id}/track${suffix}`)).then(json<TrackResponse>);
+  },
   device: (id: number, params?: { resultsCount?: number; resultsOffset?: number }) => {
     const qs = new URLSearchParams();
     if (params?.resultsCount != null) qs.set("results_count", String(params.resultsCount));

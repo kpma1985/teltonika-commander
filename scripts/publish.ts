@@ -110,6 +110,40 @@ async function waitForVerificationLink(toEmail: string, timeoutMs = 120_000): Pr
   throw new Error(`[imap] timeout waiting for verification email to ${toEmail}`);
 }
 
+async function waitForOtpCode(toEmail: string, timeoutMs = 120_000): Promise<string> {
+  console.log(`[imap] waiting for OTP email to ${toEmail}...`);
+  const deadline = Date.now() + timeoutMs;
+  const seenUids = new Set<number>();
+
+  while (Date.now() < deadline) {
+    const client = new ImapFlow({
+      host: env.imap.host, port: env.imap.port, secure: true,
+      auth: { user: env.imap.user, pass: env.imap.pass },
+      logger: false,
+    });
+    try {
+      await client.connect();
+      await client.mailboxOpen("INBOX");
+      const msgs = await client.search({ to: toEmail, seen: false }, { uid: true });
+      if (msgs && Array.isArray(msgs)) {
+        for (const uid of msgs as number[]) {
+          if (seenUids.has(uid)) continue;
+          seenUids.add(uid);
+          const msg = await client.fetchOne(String(uid), { source: true });
+          if (!msg) continue;
+          const raw = (msg as unknown as { source?: Buffer }).source?.toString() ?? "";
+          // Look for 6-digit OTP code
+          const match = raw.match(/\b(\d{6})\b/);
+          if (match) { await client.logout(); return match[1]; }
+        }
+      }
+      await client.logout();
+    } catch { try { await client.logout(); } catch {} }
+    await new Promise(r => setTimeout(r, 6000));
+  }
+  throw new Error(`[imap] timeout waiting for OTP to ${toEmail}`);
+}
+
 // ── Reddit ─────────────────────────────────────────────────────────────────
 
 async function ensureRedditAccount(ctx: BrowserContext, state: State): Promise<void> {
@@ -118,19 +152,34 @@ async function ensureRedditAccount(ctx: BrowserContext, state: State): Promise<v
   console.log("[reddit] registering account...");
 
   await page.goto("https://www.reddit.com/register/");
+  await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
 
   // Dismiss cookie banner
-  await page.locator('button:has-text("Accept all"), button:has-text("Reject non-essential")').first().click().catch(() => {});
+  await page.locator('button:has-text("Accept all")').click({ timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(1000);
 
-  await page.fill('input[name="email"], #regEmail', env.reddit.email);
-  await page.locator('button:has-text("Continue"), button[type="submit"]').first().click();
-  await page.waitForTimeout(1500);
+  // Fill email and continue
+  await page.locator('input[name="email"]').fill(env.reddit.email);
+  await page.waitForTimeout(500);
+  await page.locator('button:visible:has-text("Continue")').first().click();
 
-  await page.fill('input[name="username"], #regUsername', env.reddit.username);
-  await page.fill('input[name="password"], #regPassword', env.password);
-  await page.locator('button:has-text("Sign Up"), button:has-text("Continue"), button[type="submit"]').last().click();
-  await page.waitForTimeout(3000);
+  // Reddit sends a 6-digit OTP code to the email — fetch it via IMAP
+  await page.locator('input[name="code"]').waitFor({ state: "visible", timeout: 15000 });
+  console.log("[reddit] OTP code required — fetching from IMAP...");
+  const otp = await waitForOtpCode(env.reddit.email);
+  console.log(`[reddit] OTP code: ${otp}`);
+  await page.locator('input[name="code"]').fill(otp);
+  await page.locator('button:visible:has-text("Continue")').last().click();
+  await page.waitForTimeout(2000);
+
+  // Now fill username + password
+  await page.locator('input[name="username"]').waitFor({ state: "visible", timeout: 15000 });
+  await page.locator('input[name="username"]').fill(env.reddit.username);
+  await page.locator('input[name="password"]').fill(env.password);
+  await page.waitForTimeout(500);
+  await page.locator('button:visible:has-text("Continue")').last().click();
+  await page.waitForTimeout(4000);
   await page.close();
 
   // Verify email
@@ -147,8 +196,9 @@ async function ensureRedditAccount(ctx: BrowserContext, state: State): Promise<v
 
 async function loginReddit(page: Page): Promise<void> {
   await page.goto("https://www.reddit.com/login/");
+  await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
-  await page.locator('button:has-text("Accept all")').click().catch(() => {});
+  await page.locator('button:has-text("Accept all")').click({ timeout: 5000 }).catch(() => {});
 
   // Already logged in?
   if (await page.locator(`a[href*="/user/${env.reddit.username}"]`).isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -156,10 +206,11 @@ async function loginReddit(page: Page): Promise<void> {
     return;
   }
 
-  await page.fill('#loginUsername, input[name="username"]', env.reddit.username);
-  await page.fill('#loginPassword, input[name="password"]', env.password);
+  await page.locator('input[name="username"], #login-username').fill(env.reddit.username);
+  await page.locator('input[name="password"], #login-password').fill(env.password);
   await page.locator('button[type="submit"]').click();
-  await page.waitForTimeout(3000);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2000);
   console.log("[reddit] logged in");
 }
 

@@ -296,7 +296,7 @@ export const App = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setPrivacy((v) => !v)}
+                onClick={() => setPrivacy(!privacy)}
                 className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition ${
                   privacy
                     ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"

@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
-import {
-  buildGoogleMapsUrl,
-  buildOpenStreetMapEmbedUrl,
-  buildOpenStreetMapUrl,
-} from "../env";
+import { TrackPanel } from "./TrackPanel";
 import type { Device, DeviceDetail as Detail, Health } from "../types";
 import { TELTONIKA_DEVICE_TYPES } from "../types";
 import { BtObd2Preset } from "./presets/BtObd2Preset";
@@ -345,21 +341,6 @@ export const DeviceDetail = ({ device, health }: Props) => {
     | undefined;
   const lat = typeof position?.latitude === "number" ? position.latitude : null;
   const lon = typeof position?.longitude === "number" ? position.longitude : null;
-  const hasMapPosition = lat != null && lon != null;
-  const openStreetMapUrl = hasMapPosition
-    ? buildOpenStreetMapUrl(lat, lon)
-    : null;
-  const googleMapsUrl = hasMapPosition
-    ? buildGoogleMapsUrl(lat, lon)
-    : null;
-  const mapBounds =
-    hasMapPosition && lat != null && lon != null
-      ? `${lon - 0.01}%2C${lat - 0.01}%2C${lon + 0.01}%2C${lat + 0.01}`
-      : null;
-  const embedMapUrl =
-    hasMapPosition && mapBounds && lat != null && lon != null
-      ? buildOpenStreetMapEmbedUrl(lat, lon, mapBounds)
-      : null;
   const online = detail?.device.online ?? device.online;
 
   const statCards = [
@@ -508,45 +489,21 @@ export const DeviceDetail = ({ device, health }: Props) => {
               <Redacted value={`${position.latitude ?? "—"}, ${position.longitude ?? "—"}`} />
               {" "}| {t("speed")} {position.speed ?? "—"} km/h
             </div>
-            <div className="grid grid-cols-2 ">
-              {openStreetMapUrl && (
-                <a
-                  href={openStreetMapUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)]"
-                >
-                  {t("map_osm")}
-                </a>
-              )}
-              {googleMapsUrl && (
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)]"
-                >
-                  {t("map_google")}
-                </a>
-              )}
-              {movementChangedAt && (
-                <div
-                  title={`${t("movement_changed_title")}: ${new Date(movementChangedAt * 1000).toLocaleString()}`}
-                  className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)]"
-                >
-                  {t("last_movement_change")}{" "}
-                  {new Date(movementChangedAt * 1000).toLocaleString()}
-                </div>
-              )}
-            </div>
-            {embedMapUrl && (
-              <div className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-panel-2)]">
-                <iframe
-                  title={`Karte ${device.name}`}
-                  src={embedMapUrl}
-                  className="h-48 w-full"
-                  loading="lazy"
-                />
+            <TrackPanel
+              deviceId={device.id}
+              deviceName={device.name}
+              currentLat={lat}
+              currentLon={lon}
+              refreshKey={refreshKey}
+              online={online}
+            />
+            {movementChangedAt && (
+              <div
+                title={`${t("movement_changed_title")}: ${new Date(movementChangedAt * 1000).toLocaleString()}`}
+                className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] w-fit"
+              >
+                {t("last_movement_change")}{" "}
+                {new Date(movementChangedAt * 1000).toLocaleString()}
               </div>
             )}
           </div>
