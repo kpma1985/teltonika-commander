@@ -3,17 +3,47 @@ import { env } from "./env.ts";
 
 const BASE = env.FLESPI_BASE_URL;
 const CACHE_TTL = {
-  devices: 15_000,
-  device: 15_000,
-  telemetry: 15_000,
-  results: 8_000,
-  messages: 45_000,
+  devices: 60_000,
+  device: 30_000,
+  telemetry: 45_000,
+  results: 15_000,
+  messages: 120_000,
 } as const;
+
+/** Max attempts when Flespi returns 429 (REST volume per minute). */
+const FLESPI_429_MAX_ATTEMPTS = 6;
 
 const headers = (): HeadersInit => ({
   Authorization: `FlespiToken ${getRuntimeConfig().FLESPI_TOKEN}`,
   "Content-Type": "application/json",
 });
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Fetch with Retry-After / exponential backoff on HTTP 429. */
+const flespiRequest = async (
+  url: string,
+  init?: RequestInit
+): Promise<Response> => {
+  const merged: RequestInit = {
+    ...init,
+    headers: { ...headers(), ...(init?.headers as HeadersInit) },
+  };
+
+  for (let attempt = 0; attempt < FLESPI_429_MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(url, merged);
+    if (res.status !== 429) return res;
+
+    const ra = res.headers.get("Retry-After");
+    let waitMs = ra ? Number.parseFloat(ra) * 1000 : 400 * 2 ** attempt;
+    if (!Number.isFinite(waitMs) || waitMs < 200) waitMs = 400 * 2 ** attempt;
+    waitMs = Math.min(waitMs, 45_000);
+    await sleep(waitMs);
+  }
+
+  return fetch(url, merged);
+};
 
 type CacheEntry<T> = {
   expiresAt: number;
@@ -115,29 +145,27 @@ export const listDevices = async (): Promise<FlespiDevice[]> => {
   return getCached("devices:list", CACHE_TTL.devices, async () => {
     const url =
       `${BASE}/gw/devices/all?fields=id,name,configuration.ident,device_type_id,enabled`;
-    const res = await fetch(url, { headers: headers() });
+    const res = await flespiRequest(url);
     const raw = await unwrap<DeviceRaw[]>(res);
-    return Promise.all(
-      raw.map(async (d) => {
-        const telemetry = await getTelemetry(d.id).catch(() => ({} as FlespiTelemetry));
-        return {
-          id: d.id,
-          name: d.name,
-          device_type_id: d.device_type_id,
-          enabled: d.enabled,
-          ident: d["configuration.ident"] ?? d.configuration?.ident ?? "",
-          ...summarizeTelemetry(telemetry),
-        };
-      })
-    );
+    // Kein getTelemetry pro Gerät — das hat bei N Geräten N+1 Requests/min ausgelöst (Flespi 429).
+    // Online/Bewegung siehst du nach Auswahl unter Gerätedetails (ein Telemetry-Call).
+    return raw.map((d) => ({
+      id: d.id,
+      name: d.name,
+      device_type_id: d.device_type_id,
+      enabled: d.enabled,
+      ident: d["configuration.ident"] ?? d.configuration?.ident ?? "",
+      last_seen: null,
+      online: false,
+      movement_status: null,
+    }));
   });
 };
 
 export const getDevice = async (id: number): Promise<FlespiDevice | null> => {
   return getCached(`device:${id}`, CACHE_TTL.device, async () => {
-    const res = await fetch(
-      `${BASE}/gw/devices/${id}?fields=id,name,configuration.ident,device_type_id,enabled`,
-      { headers: headers() }
+    const res = await flespiRequest(
+      `${BASE}/gw/devices/${id}?fields=id,name,configuration.ident,device_type_id,enabled`
     );
     const raw = await unwrap<DeviceRaw[]>(res);
     const d = raw[0];
@@ -182,9 +210,7 @@ export const summarizeTelemetry = (
 
 export const getTelemetry = async (id: number): Promise<FlespiTelemetry> => {
   return getCached(`telemetry:${id}`, CACHE_TTL.telemetry, async () => {
-    const res = await fetch(`${BASE}/gw/devices/${id}/telemetry/all`, {
-      headers: headers(),
-    });
+    const res = await flespiRequest(`${BASE}/gw/devices/${id}/telemetry/all`);
     const raw = await unwrap<Array<{ telemetry?: FlespiTelemetry }>>(res);
     return raw[0]?.telemetry ?? {};
   });
@@ -210,9 +236,8 @@ export const queueCommand = async (
 
   const trySend = async (key: "payload" | "text") => {
     const body = [{ name: "custom", properties: { [key]: payload } }];
-    return fetch(`${BASE}/gw/devices/${deviceId}/commands-queue`, {
+    return flespiRequest(`${BASE}/gw/devices/${deviceId}/commands-queue`, {
       method: "POST",
-      headers: headers(),
       body: JSON.stringify(body),
     });
   };
@@ -258,9 +283,8 @@ export const getRecentResults = async (
   count = 20
 ): Promise<CommandResult[]> => {
   return getCached(`results:${deviceId}:${count}`, CACHE_TTL.results, async () => {
-    const res = await fetch(
-      `${BASE}/gw/devices/${deviceId}/commands-result?count=${count}&reverse=true`,
-      { headers: headers() }
+    const res = await flespiRequest(
+      `${BASE}/gw/devices/${deviceId}/commands-result?count=${count}&reverse=true`
     );
     const raw = await unwrap<
       Array<
@@ -390,10 +414,7 @@ export const getDeviceMessages = async (
     options.to ?? ""
   }:${options.reverse ?? ""}`;
   return getCached(cacheKey, CACHE_TTL.messages, async () => {
-    const res = await fetch(
-      `${BASE}/gw/devices/${deviceId}/messages?${params}`,
-      { headers: headers() }
-    );
+    const res = await flespiRequest(`${BASE}/gw/devices/${deviceId}/messages?${params}`);
     const raw = await unwrap<RawMessage[]>(res);
     return Array.isArray(raw) ? raw : [];
   });

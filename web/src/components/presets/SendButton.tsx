@@ -53,6 +53,7 @@ export const SendButton = ({
           type="button"
           onClick={onClick}
           disabled={sending || disabled}
+          title={sending || disabled ? undefined : t("tooltip_send_main")}
           className={`min-w-0 flex-1 py-3 text-sm font-semibold tracking-wide transition-opacity disabled:opacity-35 hover:opacity-90 ${
             hasChannelMenu ? "rounded-l-xl" : "rounded-xl"
           }`}
@@ -83,6 +84,7 @@ export const SendButton = ({
                   onChannelChange(item.key);
                   setMenuOpen(false);
                 }}
+                title={t("tooltip_send_channel", { name: item.label })}
                 className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors disabled:opacity-35 ${
                   channel === item.key
                     ? "bg-[var(--color-accent)]/15 text-[var(--color-accent-2)]"

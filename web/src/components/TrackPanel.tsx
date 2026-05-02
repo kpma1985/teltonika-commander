@@ -515,6 +515,9 @@ export const TrackPanel = ({
           onClick={() => setRecording((r) => !r)}
           disabled={currentLat == null || currentLon == null}
           className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)] disabled:opacity-40"
+          title={
+            recording ? t("tooltip_track_record_stop") : t("tooltip_track_record_start")
+          }
         >
           {recording ? t("track_recording_stop") : t("track_recording_start")}
         </button>
@@ -522,6 +525,7 @@ export const TrackPanel = ({
           type="button"
           onClick={clearRecorded}
           className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)]"
+          title={t("tooltip_track_clear_local")}
         >
           {t("track_clear_local")}
         </button>
@@ -529,7 +533,9 @@ export const TrackPanel = ({
           type="button"
           onClick={exportGpx}
           disabled={filteredPoints.length === 0 || exportBlocked}
-          title={exportBlocked ? t("track_export_privacy") : undefined}
+          title={
+            exportBlocked ? t("track_export_privacy") : t("tooltip_track_export_gpx")
+          }
           className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)] disabled:opacity-40"
         >
           {t("track_export_gpx")}
@@ -538,7 +544,9 @@ export const TrackPanel = ({
           type="button"
           onClick={exportGeoJson}
           disabled={filteredPoints.length === 0 || exportBlocked}
-          title={exportBlocked ? t("track_export_privacy") : undefined}
+          title={
+            exportBlocked ? t("track_export_privacy") : t("tooltip_track_export_geojson")
+          }
           className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)] disabled:opacity-40"
         >
           {t("track_export_geojson")}
@@ -601,6 +609,9 @@ export const TrackPanel = ({
             type="button"
             onClick={() => setFullscreen((f) => !f)}
             className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)]"
+            title={
+              fullscreen ? t("tooltip_track_exit_fullscreen") : t("tooltip_track_fullscreen")
+            }
           >
             {fullscreen ? t("track_exit_fullscreen") : t("track_fullscreen")}
           </button>

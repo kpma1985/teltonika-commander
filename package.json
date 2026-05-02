@@ -12,7 +12,8 @@
     "build": "cd web && bun run build",
     "build:binary": "./scripts/build-binary.sh",
     "typecheck": "cd server && bun run typecheck && cd ../web && bun run typecheck",
-    "publish": "bun run scripts/publish.ts"
+    "publish": "bun run scripts/publish.ts",
+    "docker:build-image": "docker build -f docker/Dockerfile.build -t teltonika-sms:build ."
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

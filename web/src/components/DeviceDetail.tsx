@@ -390,6 +390,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
             type="button"
             onClick={() => toggleSection(section)}
             className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
+            title={isOpen ? t("tooltip_section_collapse") : t("tooltip_section_expand")}
           >
             <div className="text-sm font-medium">{title}</div>
             <span className="text-[var(--color-muted)]">{isOpen ? "-" : "+"}</span>
@@ -402,7 +403,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
               onClick={() => moveSection(section, "up")}
               className="rounded-md border border-[var(--color-line)] px-1.5 py-0.5 text-[11px] text-[var(--color-muted)] disabled:opacity-35"
               aria-label={`${title} up`}
-              title="Move up"
+              title={t("tooltip_section_up")}
             >
               ↑
             </button>
@@ -412,7 +413,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
               onClick={() => moveSection(section, "down")}
               className="rounded-md border border-[var(--color-line)] px-1.5 py-0.5 text-[11px] text-[var(--color-muted)] disabled:opacity-35"
               aria-label={`${title} down`}
-              title="Move down"
+              title={t("tooltip_section_down")}
             >
               ↓
             </button>
@@ -456,6 +457,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
               type="button"
               onClick={() => setRefreshKey((k) => k + 1)}
               className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)]"
+              title={t("tooltip_detail_refresh")}
             >
               {t("refresh")}
             </button>
@@ -534,7 +536,9 @@ export const DeviceDetail = ({ device, health }: Props) => {
                 {tabs.map((tItem) => (
                   <button
                     key={tItem.key}
+                    type="button"
                     onClick={() => setTab(tItem.key)}
+                    title={t("tooltip_tab_command", { name: tItem.label })}
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                       tab === tItem.key
                         ? "bg-[var(--color-accent)] text-white"
@@ -663,6 +667,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
                   disabled={resultsOffset === 0}
                   onClick={() => setResultsOffset((v) => Math.max(0, v - RESULTS_PAGE_SIZE))}
                   className="rounded-lg border border-[var(--color-line)] px-2 py-1 text-[11px] text-[var(--color-muted)] disabled:opacity-40"
+                  title={t("tooltip_results_prev")}
                 >
                   {t("previous")}
                 </button>
@@ -677,6 +682,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
                   }
                   onClick={() => setResultsOffset((v) => v + RESULTS_PAGE_SIZE)}
                   className="rounded-lg border border-[var(--color-line)] px-2 py-1 text-[11px] text-[var(--color-muted)] disabled:opacity-40"
+                  title={t("tooltip_results_next")}
                 >
                   {t("next")}
                 </button>
@@ -693,7 +699,7 @@ export const DeviceDetail = ({ device, health }: Props) => {
                 api.clearHistory(device.id).then(() => setRefreshKey((k) => k + 1));
               }}
               className="rounded-md border border-[var(--color-line)] px-2 py-0.5 text-[11px] text-[var(--color-muted)] hover:border-red-700 hover:text-red-400 transition-colors"
-              title="History löschen"
+              title={t("tooltip_history_clear")}
             >
               Leeren
             </button>

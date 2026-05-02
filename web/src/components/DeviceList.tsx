@@ -27,7 +27,9 @@ export const DeviceList = ({ devices, selectedId, onSelect }: Props) => {
         return (
           <button
             key={d.id}
+            type="button"
             onClick={() => onSelect(d.id)}
+            title={t("tooltip_device_select")}
             className={`text-left rounded-2xl border px-3 py-3 transition ${
               active
                 ? "bg-[var(--color-panel-2)] border-[var(--color-accent)] shadow-sm"

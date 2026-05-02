@@ -38,6 +38,7 @@ export const Preview = ({ data, channel }: Props) => {
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center justify-between gap-2 bg-[var(--color-bg)] px-3 py-2 text-left text-[10px] uppercase tracking-widest text-[var(--color-muted)]"
         aria-expanded={open}
+        title={t("tooltip_preview_toggle")}
       >
         <span>{t("command_preview")}</span>
         <span className="text-sm leading-none">{open ? "-" : "+"}</span>

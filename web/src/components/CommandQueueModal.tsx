@@ -81,6 +81,7 @@ export const CommandQueueModal = ({
         onClick={onClose}
         className="absolute inset-0 bg-black/50"
         aria-label={t("close_menu")}
+        title={t("tooltip_close_menu_overlay")}
       />
       <div className="relative z-10 flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[var(--color-bg)] shadow-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] px-4 py-3">
@@ -95,6 +96,7 @@ export const CommandQueueModal = ({
               type="button"
               onClick={() => setManualRefresh((value) => value + 1)}
               className="rounded-lg border border-[var(--color-line)] px-2.5 py-1.5 text-xs text-[var(--color-muted)] hover:bg-[var(--color-panel)]"
+              title={t("tooltip_queue_modal_refresh")}
             >
               {t("refresh")}
             </button>

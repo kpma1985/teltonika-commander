@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import type { CommandResult, Device, Health } from "./types";
 import { DeviceList } from "./components/DeviceList";
@@ -20,10 +20,18 @@ const readStoredSelectedDeviceId = (): number | null => {
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
+const resolveSelectedId = (list: Device[], current: number | null): number | null => {
+  if (current != null && list.some((device) => device.id === current)) return current;
+  const storedId = readStoredSelectedDeviceId();
+  if (storedId != null && list.some((device) => device.id === storedId)) return storedId;
+  return list[0]?.id ?? null;
+};
+
 export const App = () => {
   const [health, setHealth] = useState<Health | null>(null);
   const [devices, setDevices] = useState<Device[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(readStoredSelectedDeviceId);
+  const selectedIdRef = useRef<number | null>(selectedId);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -34,25 +42,40 @@ export const App = () => {
     useState<Array<{ id: number; result: CommandResult; fading: boolean }>>([]);
   const { t, language, setLanguage, theme, setTheme, privacy, setPrivacy } = useUi();
 
-  const refresh = () => {
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  const refresh = useCallback(() => {
     Promise.all([api.health(), api.devices()])
-      .then(([h, d]) => {
+      .then(async ([h, d]) => {
         setHealth(h);
-        setDevices(d);
-        setSelectedId((cur) => {
-          if (cur != null && d.some((device) => device.id === cur)) return cur;
+        const sel = resolveSelectedId(d, selectedIdRef.current);
+        setSelectedId(sel);
 
-          const storedId = readStoredSelectedDeviceId();
-          if (storedId != null && d.some((device) => device.id === storedId)) {
-            return storedId;
+        let nextDevices = d;
+        if (sel != null) {
+          try {
+            const detail = await api.device(sel);
+            nextDevices = d.map((dev) =>
+              dev.id === sel
+                ? {
+                    ...dev,
+                    online: detail.device.online,
+                    last_seen: detail.device.last_seen,
+                    movement_status: detail.device.movement_status,
+                  }
+                : dev
+            );
+          } catch {
+            /* Liste ohne Live-Telemetrie für die Sidebar */
           }
-
-          return d[0]?.id ?? null;
-        });
+        }
+        setDevices(nextDevices);
         setError(null);
       })
       .catch((e: Error) => setError(e.message));
-  };
+  }, []);
 
   useEffect(() => {
     refresh();
@@ -61,7 +84,7 @@ export const App = () => {
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     const timers: number[] = [];
@@ -106,9 +129,9 @@ export const App = () => {
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const id = setInterval(refresh, 15000);
+    const id = setInterval(refresh, 25_000);
     return () => clearInterval(id);
-  }, [autoRefresh]);
+  }, [autoRefresh, refresh]);
 
   useEffect(() => {
     document.body.style.overflow = sidebarOpen ? "hidden" : "";
@@ -152,6 +175,7 @@ export const App = () => {
               setQueueRefreshKey((value) => value + 1);
             }}
             className="rounded-lg border border-[var(--color-line)] px-2 py-1 text-[11px] text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
+            title={t("tooltip_queue_link")}
           >
             {t("queue_link")}
           </button>
@@ -244,6 +268,7 @@ export const App = () => {
                     <button
                       onClick={connectSipgate}
                       className="rounded-lg bg-[var(--color-accent)] px-2.5 py-1 text-white"
+                      title={t("tooltip_connect_sipgate")}
                     >
                       {t("connect")}
                     </button>
@@ -252,6 +277,7 @@ export const App = () => {
                     <button
                       onClick={disconnectSipgate}
                       className="rounded-lg border border-[var(--color-line)] px-2.5 py-1"
+                      title={t("tooltip_disconnect_sipgate")}
                     >
                       {t("disconnect")}
                     </button>
@@ -270,7 +296,7 @@ export const App = () => {
                         : "text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
                     }`}
                     aria-label={t("language")}
-                    title={value === "de" ? "DE" : "EN"}
+                    title={value === "de" ? t("tooltip_lang_de") : t("tooltip_lang_en")}
                   >
                     {value === "de" ? "DE" : "EN"}
                   </button>
@@ -288,7 +314,7 @@ export const App = () => {
                         : "text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
                     }`}
                     aria-label={t(value)}
-                    title={t(value)}
+                    title={value === "dark" ? t("tooltip_theme_dark") : t("tooltip_theme_light")}
                   >
                     {value === "dark" ? "◐" : "◌"}
                   </button>
@@ -302,7 +328,7 @@ export const App = () => {
                     ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
                     : "border-[var(--color-line)] bg-[var(--color-panel)] text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
                 }`}
-                title={privacy ? "Privacy mode on — click to show data" : "Privacy mode off — click to blur sensitive data"}
+                title={privacy ? t("tooltip_privacy_on") : t("tooltip_privacy_off")}
               >
                 {privacy ? "🙈" : "👁"}
               </button>
@@ -314,7 +340,11 @@ export const App = () => {
                     ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
                     : "border-[var(--color-line)] bg-[var(--color-panel)] text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
                 }`}
-                title={autoRefresh ? "Auto-Refresh an (15s) — klicken zum Deaktivieren" : "Auto-Refresh aus — klicken zum Aktivieren"}
+                title={
+                  autoRefresh
+                    ? t("tooltip_auto_refresh_on", { seconds: 25 })
+                    : t("tooltip_auto_refresh_off")
+                }
               >
                 ↻
               </button>
@@ -327,7 +357,7 @@ export const App = () => {
                   refresh();
                 }}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-2.5 text-xs text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
-                title="Server neu starten"
+                title={t("tooltip_server_restart")}
               >
                 ⟳ Restart
               </button>
@@ -343,6 +373,7 @@ export const App = () => {
             onClick={() => setSidebarOpen(false)}
             className="absolute inset-0 bg-black/45"
             aria-label={t("close_menu")}
+            title={t("tooltip_close_menu_overlay")}
           />
           <div className="absolute inset-y-0 left-0 flex w-[min(88vw,360px)] flex-col border-r border-[var(--color-line)] bg-[var(--color-bg)] p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between gap-3">

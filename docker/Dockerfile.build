@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+# Reusable CI/local build environment: Bun plus native toolchain for serialport bindings.
+# Build image:
+#   docker build -f docker/Dockerfile.build -t teltonika-sms:build .
+# Run full pipeline with mounted repo:
+#   docker run --rm -v "$PWD":/app -w /app teltonika-sms:build
+# Binary release (optional):
+#   docker run --rm -v "$PWD":/app -w /app teltonika-sms:build ./scripts/build-binary.sh
+
+FROM oven/bun:1-slim
+
+LABEL org.opencontainers.image.description="Build tooling for teltonika-sms"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+ENV CI=1
+
+CMD ["sh", "-c", "bun install --frozen-lockfile && bun run typecheck && bun run build"]

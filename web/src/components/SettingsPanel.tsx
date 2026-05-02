@@ -81,6 +81,11 @@ export const SettingsPanel = () => {
             type="button"
             onClick={() => setShowApiSettings((v) => !v)}
             className="flex min-w-0 flex-1 items-start justify-between gap-3 text-left"
+            title={
+              showApiSettings
+                ? t("tooltip_settings_collapse_panel")
+                : t("tooltip_settings_expand_panel")
+            }
           >
             <div>
               <div className="text-sm font-medium">{t("api_settings")}</div>
@@ -98,8 +103,8 @@ export const SettingsPanel = () => {
             type="button"
             onClick={() => setShowHints((v) => !v)}
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-[var(--color-panel)] text-[11px] text-[var(--color-muted)] hover:bg-[var(--color-soft)]"
-            title={showHints ? "Hide hints" : "Show hints"}
-            aria-label={showHints ? "Hide hints" : "Show hints"}
+            title={t("tooltip_settings_hints")}
+            aria-label={t("tooltip_settings_hints")}
           >
             {showHints ? "?" : "i"}
           </button>
@@ -158,6 +163,7 @@ export const SettingsPanel = () => {
                   }
                 }}
                 className="rounded-xl bg-[var(--color-accent)] px-3 py-2 text-sm text-white disabled:opacity-50"
+                title={t("tooltip_settings_save")}
               >
                 {saving ? t("sending") : t("save_settings")}
               </button>

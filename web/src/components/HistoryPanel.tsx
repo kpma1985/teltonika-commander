@@ -45,6 +45,7 @@ export const HistoryPanel = ({ deviceId, refreshKey, showHeader = true }: Props)
             type="button"
             onClick={load}
             className="text-[11px] px-2 py-1 rounded-lg border border-[var(--color-line)] text-[var(--color-muted)] hover:bg-[var(--color-panel-2)]"
+            title={t("tooltip_history_reload")}
           >
             {t("refresh")}
           </button>
@@ -119,6 +120,7 @@ export const HistoryPanel = ({ deviceId, refreshKey, showHeader = true }: Props)
               disabled={offset === 0}
               onClick={() => setOffset((v) => Math.max(0, v - limit))}
               className="rounded-lg border border-[var(--color-line)] px-2 py-1 text-[11px] text-[var(--color-muted)] disabled:opacity-40"
+              title={t("tooltip_history_page_prev")}
             >
               {t("previous")}
             </button>
@@ -130,6 +132,7 @@ export const HistoryPanel = ({ deviceId, refreshKey, showHeader = true }: Props)
               disabled={sortedRows.length < limit}
               onClick={() => setOffset((v) => v + limit)}
               className="rounded-lg border border-[var(--color-line)] px-2 py-1 text-[11px] text-[var(--color-muted)] disabled:opacity-40"
+              title={t("tooltip_history_page_next")}
             >
               {t("next")}
             </button>

@@ -45,6 +45,7 @@ export const DeviceConfigModal = ({ config, onApply, onDismiss }: Props) => {
             type="button"
             onClick={onApply}
             className="flex-1 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm text-white"
+            title={t("tooltip_device_config_apply")}
           >
             {t("device_config_apply")}
           </button>
@@ -52,6 +53,7 @@ export const DeviceConfigModal = ({ config, onApply, onDismiss }: Props) => {
             type="button"
             onClick={onDismiss}
             className="flex-1 rounded-lg border border-[var(--color-line)] px-3 py-2 text-sm text-[var(--color-muted)]"
+            title={t("tooltip_device_config_dismiss")}
           >
             {t("device_config_dismiss")}
           </button>

@@ -43,6 +43,7 @@ export const ChannelPicker = ({
               type="button"
               disabled={disabled}
               onClick={() => onChange(key)}
+              title={t("tooltip_send_channel", { name: label })}
               className={`rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-35 ${
                 channel === key
                   ? "bg-[var(--color-accent)] text-white"
@@ -70,6 +71,7 @@ export const ChannelPicker = ({
                 type="button"
                 onClick={onSaveRecipient}
                 className="shrink-0 rounded-lg border border-[var(--color-line)] px-3 py-2 text-xs text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+                title={t("tooltip_save_recipient")}
               >
                 {t("save_number")}
               </button>
