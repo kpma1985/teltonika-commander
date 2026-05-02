@@ -618,12 +618,18 @@ app.use("/*", serveStatic({
   },
 }));
 
-// Inject __BASE_URL__ so the frontend can prefix API calls correctly
+// Inject __BASE_URL__ so the frontend can prefix API calls under Home Assistant Ingress
 app.get("*", async (c) => {
-  const ingressPath = (c.req.header("X-Ingress-Path") ?? "").replace(/\/$/, "");
-  const base = ingressPath || "";
+  const raw =
+    c.req.header("X-Ingress-Path")?.trim() ??
+    c.req.header("X-Forwarded-Prefix")?.trim() ??
+    "";
+  const base = raw.replace(/\/$/, "");
   const html = await Bun.file(`${webDistRoot}/index.html`).text();
-  const patched = html.replace("<head>", `<head><script>window.__BASE_URL__="${base}";</script>`);
+  const patched = html.replace(
+    "<head>",
+    `<head><script>window.__BASE_URL__=${JSON.stringify(base)};</script>`
+  );
   return c.html(patched);
 });
 
